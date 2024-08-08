@@ -1,6 +1,8 @@
 package com.project.polling.service;
 
 import com.project.polling.dto.*;
+import com.project.polling.exception.IdNotFoundException;
+import com.project.polling.exception.InvalidInputException;
 import com.project.polling.mapper.IPollMapper;
 import com.project.polling.model.Poll;
 import com.project.polling.repository.ServerRepository;
@@ -30,22 +32,22 @@ public class ServerService implements IServerService{
     @Override
     public PollResult vote(String pollId, VoteRequest request) {
         Poll poll = repository.getPollById(pollId)
-                .orElseThrow(() -> new RuntimeException("invalid pollId"));
+                .orElseThrow(() -> new IdNotFoundException("invalid pollId"));
         Map<String,Integer> results = poll.getResults();
         String selectedOption = request.getOptionSelected();
         if(!results.containsKey(selectedOption)) {
-            throw new RuntimeException("option does not exist in poll");
+            throw new InvalidInputException("option does not exist in poll");
         }
         results.compute(selectedOption, (k, numVotes) -> numVotes + 1);
         Poll newPoll = repository.savePollResults(pollId, results)
-                .orElseThrow(() -> new RuntimeException("invalid pollId"));
+                .orElseThrow(() -> new IdNotFoundException("invalid pollId"));
         return pollMapper.pollToPollResult(newPoll);
     }
 
     @Override
     public PollOptions getOptions(String pollId) {
         Poll poll = repository.getPollById(pollId)
-                .orElseThrow(() -> new RuntimeException("invalid pollId"));
+                .orElseThrow(() -> new IdNotFoundException("invalid pollId"));
         return pollMapper.pollToPollOptions(poll);
     }
 
@@ -54,7 +56,7 @@ public class ServerService implements IServerService{
         List<String> options = request.getOptions();
         Set<String> set = new HashSet<>(options);
         if(set.size() < options.size()) {
-            throw new RuntimeException("There can't be duplicate options in poll");
+            throw new InvalidInputException("There can't be duplicate options in poll");
         }
         Poll poll = repository.addPoll(pollMapper.createPollRequestToPoll(request));
         return pollMapper.pollToPollInfo(poll);
